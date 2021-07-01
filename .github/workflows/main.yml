@@ -6,6 +6,7 @@ on:
 
 jobs:
   build:
+    if: ${{ github.repository != 'msys2/MSYS2-packages-dev' || github.event_name != 'push' || github.ref != 'refs/heads/master'}}
     runs-on: windows-latest
 
     steps:
@@ -17,8 +18,18 @@ jobs:
       - uses: msys2/setup-msys2@v2
         with:
           msystem: MSYS
-          install: git base-devel msys2-devel
+          install: git base-devel msys2-devel pactoys-git
           update: true
+
+      - name: Add staging repo
+        shell: msys2 {0}
+        run: |
+          sed -i '1s|^|[staging]\nServer = https://repo.msys2.org/staging/\nSigLevel = Never\n|' /etc/pacman.conf
+
+      - name: Update using staging
+        run: |
+          msys2 -c 'pacman --noconfirm -Suuy'
+          msys2 -c 'pacman --noconfirm -Suu'
 
       - name: Move Checkout
         run: |
@@ -28,7 +39,7 @@ jobs:
         shell: msys2 {0}
         run: |
           cd /C/_
-          ./ci-build.sh
+          ./.ci/ci-build.sh
 
       - name: "Upload binaries"
         uses: actions/upload-artifact@v2

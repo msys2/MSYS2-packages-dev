@@ -78,13 +78,13 @@ _package_provides() {
 _build_add() {
     local package="${1}"
     local depends makedepends
-    for sorted_package in "${sorted_packages[@]}"; do
-        [[ "${sorted_package}" = "${package}" ]] && return 0
+    for started_package in "${started_packages[@]}"; do
+        [[ "${started_package}" = "${package}" ]] && return 0
     done
+    started_packages+=("${package}")
     _package_info "${package}" depends makedepends
     for dependency in "${depends[@]}" "${makedepends[@]}"; do
         for unsorted_package in "${packages[@]}"; do
-            [[ "${package}" = "${unsorted_package}" ]] && continue
             _package_provides "${unsorted_package}" "${dependency}" && _build_add "${unsorted_package}"
         done
     done
@@ -154,6 +154,13 @@ list_dll_deps(){
     local target="${1}"
     echo "$(tput setaf 2)MSYS2 DLL dependencies:$(tput sgr0)"
     find "$target" -regex ".*\.\(exe\|dll\)" -print0 | xargs -0 -r ldd | GREP_COLOR="1;35" grep --color=always "msys-.*\|" \
+    || echo "        None"
+}
+
+list_dll_bases(){
+    local target="${1}"
+    echo "$(tput setaf 2)MSYS2 DLL bases:$(tput sgr0)"
+    find "$target" -regex ".*\.\(exe\|dll\)" -print | rebase -iT - | GREP_COLOR="1;35" grep --color=always "msys-.*\|" \
     || echo "        None"
 }
 
